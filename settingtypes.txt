@@ -1,0 +1,9 @@
+
+
+balanced_diet:default_saturation_max () float 20 0
+balanced_diet:default_food_saturation () float 0 0
+balanced_diet:default_food_duration () float 300 0
+
+balanced_diet:nutrient_decay_gamma () float 0.5 0.01
+
+balanced_diet:top_up_at () float 0.5 0 1

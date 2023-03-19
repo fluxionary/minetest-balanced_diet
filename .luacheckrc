@@ -657,5 +657,6 @@ stds.balanced_diet = {
 	read_globals = {
 		"fmod",
 		"futil",
+		"hb",
 	},
 }

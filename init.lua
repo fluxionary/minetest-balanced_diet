@@ -5,4 +5,9 @@ end
 balanced_diet = fmod.create()
 
 balanced_diet.dofile("api")
+balanced_diet.dofile("callbacks")
+balanced_diet.dofile("chatcommands")
+balanced_diet.dofile("hud")
 balanced_diet.dofile("overrides")
+
+balanced_diet.dofile("compat", "init")
