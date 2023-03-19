@@ -4,9 +4,25 @@ function balanced_diet.register_hud(def)
 	table.insert(balanced_diet.registered_huds, def)
 end
 
-balanced_diet.register_on_saturation_change(function(player, saturation)
-	for _, hud_def in ipairs(balanced_diet.registered_huds) do
-		hud_def.on_saturation_change(player, saturation)
+local last_saturation_by_player_name = {}
+minetest.register_on_leaveplayer(function(player)
+	last_saturation_by_player_name[player:get_player_name()] = nil
+end)
+minetest.register_globalstep(function(dtime)
+	local now = minetest.get_us_time()
+	local players = minetest.get_connected_players()
+	for i = 1, #players do
+		local player = players[i]
+		local player_name = player:get_player_name()
+		local last_saturation = last_saturation_by_player_name[player_name]
+		local current_saturation = balanced_diet.get_current_saturation(player, now) -- TODO: round? floor?
+		last_saturation_by_player_name[player_name] = current_saturation
+
+		if last_saturation ~= current_saturation then
+			for _, hud_def in ipairs(balanced_diet.registered_huds) do
+				hud_def.on_saturation_change(player, current_saturation)
+			end
+		end
 	end
 end)
 

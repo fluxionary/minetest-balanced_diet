@@ -174,6 +174,11 @@ function balanced_diet.set_saturation_max(player, saturation_max)
 	meta:set_float("balanced_diet:saturation_max", saturation_max)
 end
 
+local current_saturation_cache = {}
+minetest.register_globalstep(function()
+	current_saturation_cache = {}
+end)
+
 function balanced_diet.get_current_saturation(player, now)
 	if not minetest.is_player(player) then
 		return 0
@@ -183,15 +188,25 @@ function balanced_diet.get_current_saturation(player, now)
 		now = minetest.get_us_time()
 	end
 
+	local player_name = player:get_player_name()
+	local key = f("%s:%s", player_name, now)
+	local total_saturation = current_saturation_cache[key]
+
+	if total_saturation then
+		return total_saturation
+	end
+
 	local meta = player:get_meta()
 	local eaten = get_eaten(meta, now)
-	local total_saturation = 0
+	total_saturation = 0
 
 	for food, expires in pairs(eaten) do
 		local food_def = balanced_diet.get_food_def(food)
 		local remaining_saturation = food_def.saturation * (expires - now) / food_def.duration
 		total_saturation = total_saturation + remaining_saturation
 	end
+
+	current_saturation_cache[key] = total_saturation
 
 	return total_saturation
 end
