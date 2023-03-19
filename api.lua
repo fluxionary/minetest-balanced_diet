@@ -158,6 +158,12 @@ function balanced_diet.check_nutrient_value(player, nutrient, now)
 	return value
 end
 
+balanced_diet.registered_on_saturation_max_changes = {}
+
+function balanced_diet.register_on_saturation_max_change(callback)
+	table.insert(balanced_diet.registered_on_saturation_max_changes, callback)
+end
+
 function balanced_diet.get_saturation_max(player)
 	if not minetest.is_player(player) then
 		return
@@ -171,7 +177,14 @@ function balanced_diet.set_saturation_max(player, saturation_max)
 		return
 	end
 	local meta = player:get_meta()
-	meta:set_float("balanced_diet:saturation_max", saturation_max)
+	local key = "balanced_diet:saturation_max"
+	local old_max = meta:get_float("balanced_diet:saturation_max")
+	meta:set_float(key, saturation_max)
+	if saturation_max ~= old_max then
+		for _, callback in ipairs(balanced_diet.registered_on_saturation_max_changes) do
+			callback(player, saturation_max, old_max)
+		end
+	end
 end
 
 local current_saturation_cache = {}
