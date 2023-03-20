@@ -13,7 +13,7 @@ local eaten_key = "balanced_diet:eaten"
 
 local function get_eaten(meta, now)
 	local eaten = minetest.deserialize(meta:get(eaten_key))
-	if now then
+	if now and eaten then
 		local removed = false
 		for food, expires in pairs(eaten) do
 			if now >= expires or not balanced_diet.is_food(food) then
@@ -25,11 +25,15 @@ local function get_eaten(meta, now)
 			meta:set_string(eaten_key, minetest.serialize(eaten))
 		end
 	end
-	return eaten
+	return eaten or {}
 end
 
 local function set_eaten(meta, eaten)
-	meta:set_string(eaten_key, minetest.serialize(eaten))
+	if futil.table.is_empty(eaten) then
+		meta:set_string(eaten_key, "")
+	else
+		meta:set_string(eaten_key, minetest.serialize(eaten))
+	end
 end
 
 function balanced_diet.register_nutrient(name, def)
