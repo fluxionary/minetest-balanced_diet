@@ -41,6 +41,7 @@ function balanced_diet.register_nutrient(name, def)
 		error("attempt to re-register nutrient " .. name)
 	end
 	def.name = name
+	def.description = def.description or def.name
 	balanced_diet.registered_nutrients[name] = def
 end
 
@@ -62,6 +63,29 @@ end
 
 function balanced_diet.get_food_def(item_or_stack)
 	return ItemStack(item_or_stack):get_definition()._balanced_diet
+end
+
+local function build_description(item_name, food_def)
+	local def = minetest.registered_items[item_name]
+	local orig_description
+	if def._balanced_diet_orig_description then
+		orig_description = def._balanced_diet_orig_description
+	else
+		local item_stack = ItemStack(item_name)
+		orig_description = item_stack:get_description()
+		minetest.override_item(item_name, {
+			_balanced_diet_orig_description = orig_description,
+		})
+	end
+	local parts = { orig_description }
+	table.insert_all(parts, {
+		S("food saturation: @1", food_def.saturation),
+		S("food duration: @1s", food_def.duration),
+	})
+	for nutrient, value in futil.table.pairs_by_key(food_def.nutrients or {}) do
+		table.insert(parts, S("@1 = @2", balanced_diet.registered_nutrients[nutrient].description, value))
+	end
+	return table.concat(parts, "\n"), def.short_description or orig_description
 end
 
 function balanced_diet.register_food(item_name, food_def)
@@ -87,8 +111,12 @@ function balanced_diet.register_food(item_name, food_def)
 		groups["nutrient_" .. nutrient] = value
 	end
 
+	local description, short_description = build_description(item_name, food_def)
+
 	minetest.override_item(item_name, {
 		_balanced_diet = food_def,
+		description = description,
+		short_description = short_description,
 		groups = groups,
 		on_use = balanced_diet.item_eat(),
 	})
@@ -103,11 +131,14 @@ function balanced_diet.override_food(item_name, overrides)
 		error("attempt to override unregistered food " .. item_name)
 	end
 	local groups = table.copy(def.groups)
+
+	-- clear old nutrient groups
 	for group in pairs(groups) do
 		if group:match("^nutrient_") then
 			groups[group] = nil
 		end
 	end
+
 	for nutrient, value in pairs(overrides.nutrients or {}) do
 		if not balanced_diet.registered_nutrients[nutrient] then
 			-- TODO: this should optionally just be a warning
@@ -115,10 +146,16 @@ function balanced_diet.override_food(item_name, overrides)
 		end
 		groups["nutrient_" .. nutrient] = value
 	end
+
 	local food_def = table.copy(def._balanced_diet)
 	futil.table.set_all(food_def, overrides)
+
+	local description, short_description = build_description(item_name, food_def)
+
 	minetest.override_item(item_name, {
 		_balanced_diet = food_def,
+		description = description,
+		short_description = short_description,
 		groups = groups,
 	})
 end
