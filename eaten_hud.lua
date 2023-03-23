@@ -1,0 +1,24 @@
+--local hud_ids_by_player_name = {}
+--
+--local function update_eaten_hud(player, now)
+--	local meta = player:get_meta()
+--	local eaten = balanced_diet.get_eaten(player, now)
+--	local eaten_info = {}
+--	for item, expires in pairs(eaten) do
+--	end
+--end
+--
+--futil.register_globalstep({
+--	period = 1,
+--	func = function()
+--		local now = os.time()
+--		local players = minetest.get_connected_players()
+--		for i = 1, #players do
+--			update_eaten_hud(players[i], now)
+--		end
+--	end,
+--})
+--
+--minetest.register_chatcommand("toggle_eaten_hud", {
+--	func = function(name) end,
+--})

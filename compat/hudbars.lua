@@ -13,7 +13,7 @@ hb.register_hudbar(
 	false
 )
 
-balanced_diet.register_hud({
+balanced_diet.register_saturation_hud({
 	on_joinplayer = function(player, saturation, saturation_max)
 		hb.init_hudbar(player, identifier, saturation, saturation_max, false)
 	end,

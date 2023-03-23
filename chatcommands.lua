@@ -1,6 +1,6 @@
 local S = balanced_diet.S
 
-minetest.register_chatcommand("puke", {
+minetest.register_chatcommand("purge", {
 	description = S("empty the contents of your stomach"),
 	privs = { server = true },
 	func = function(name)
@@ -8,7 +8,7 @@ minetest.register_chatcommand("puke", {
 		if not player then
 			return false, S("you are not an active player")
 		end
-		balanced_diet.purge_saturation(player)
+		balanced_diet.purge_eaten(player)
 		return true, S("you empty the contents of your stomach")
 	end,
 })

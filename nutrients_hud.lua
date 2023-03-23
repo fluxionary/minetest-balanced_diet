@@ -1,0 +1,3 @@
+--local hud_id_by_player_name = {}
+--
+--local function update_nutrients_hud(player) end
