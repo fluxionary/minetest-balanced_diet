@@ -21,6 +21,11 @@ balanced_diet.register_saturation_hud({
 		hb.change_hudbar(player, identifier, saturation, nil)
 	end,
 	on_saturation_max_change = function(player, saturation_max)
-		hb.change_hudbar(player, identifier, nil, saturation_max)
+		local state = hb.get_hudbar_state(player, identifier)
+		if state.value > saturation_max then
+			hb.change_hudbar(player, identifier, saturation_max, saturation_max)
+		else
+			hb.change_hudbar(player, identifier, nil, saturation_max)
+		end
 	end,
 })

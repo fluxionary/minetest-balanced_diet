@@ -9,7 +9,7 @@ minetest.register_on_leaveplayer(function(player)
 	last_saturation_by_player_name[player:get_player_name()] = nil
 end)
 minetest.register_globalstep(function(dtime)
-	local now = minetest.get_us_time()
+	local now = os.time()
 	local players = minetest.get_connected_players()
 	for i = 1, #players do
 		local player = players[i]
@@ -33,7 +33,7 @@ balanced_diet.register_on_saturation_max_change(function(player, saturation_max)
 end)
 
 minetest.register_on_joinplayer(function(player)
-	local saturation = balanced_diet.get_current_saturation(player, minetest.get_us_time())
+	local saturation = balanced_diet.get_current_saturation(player, os.time())
 	local saturation_max = balanced_diet.get_saturation_max(player)
 	for _, hud_def in ipairs(balanced_diet.registered_saturation_huds) do
 		if hud_def.on_joinplayer then

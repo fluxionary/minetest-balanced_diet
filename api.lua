@@ -10,20 +10,27 @@ local function gamma(v)
 end
 
 local eaten_key = "balanced_diet:eaten"
+local last_set_key = "balanced_diet:last_set"
 
 local function get_eaten(meta, now)
-	local eaten = minetest.deserialize(meta:get(eaten_key))
+	local eaten = minetest.deserialize(meta:get_string(eaten_key))
 	if now and eaten then
-		local any_removed = false
-		for food, expires in pairs(eaten) do
-			-- TODO: remove this type check before proper release
-			if type(expires) ~= "number" or now >= expires or not balanced_diet.is_food(food) then
-				eaten[food] = nil
-				any_removed = true
+		local last_set = meta:get_float(last_set_key)
+		if last_set > 0 then
+			if now < last_set then
+				error("now(%s) is before the last update(%s)?!", now, last_set)
 			end
-		end
-		if any_removed then
-			meta:set_string(eaten_key, minetest.serialize(eaten))
+			local elapsed = now - last_set
+			for food, remaining in pairs(eaten) do
+				if elapsed >= remaining or not balanced_diet.is_food(food) then
+					eaten[food] = nil
+				else
+					eaten[food] = remaining - elapsed
+				end
+			end
+
+			meta:set_string(eaten_key, minetest.serialize(eaten), now)
+			meta:set_float(last_set_key, now)
 		end
 	end
 	return eaten or {}
@@ -33,13 +40,38 @@ function balanced_diet.get_eaten(player, now)
 	return get_eaten(player:get_meta(), now)
 end
 
-local function set_eaten(meta, eaten)
+local function set_eaten(meta, eaten, now)
 	if futil.table.is_empty(eaten) then
 		meta:set_string(eaten_key, "")
 	else
 		meta:set_string(eaten_key, minetest.serialize(eaten))
 	end
+	if now then
+		meta:set_float(last_set_key, now)
+	end
 end
+
+minetest.register_on_joinplayer(function(player)
+	local meta = player:get_meta()
+	-- start the timer again
+	meta:set_float(last_set_key, os.time())
+end)
+
+minetest.register_on_leaveplayer(function(player, timed_out)
+	local meta = player:get_meta()
+	if timed_out then
+		-- refund time during timeout (60 seconds)
+		-- note that this doesn't refund foods which might have expired during the timeout, which is tricky
+		local eaten = get_eaten(meta)
+		for food, remaining in pairs(eaten) do
+			eaten[food] = remaining + 60
+		end
+		set_eaten(meta, eaten) -- don't change last_set
+	end
+
+	-- make sure food is used up
+	get_eaten(meta, os.time())
+end)
 
 function balanced_diet.register_nutrient(name, def)
 	if balanced_diet.registered_nutrients[name] then
@@ -67,7 +99,18 @@ function balanced_diet.is_food(item_or_stack)
 end
 
 function balanced_diet.get_food_def(item_or_stack)
-	return ItemStack(item_or_stack):get_definition()._balanced_diet
+	local stack
+	if type(item_or_stack) == "string" then
+		stack = ItemStack(item_or_stack)
+	else
+		stack = item_or_stack
+	end
+	local meta = stack:get_meta()
+	local override = meta:get("_balanced_diet")
+	if override then
+		return minetest.deserialize(override)
+	end
+	return stack:get_definition()._balanced_diet
 end
 
 local function build_description(item_name, food_def)
@@ -187,18 +230,17 @@ function balanced_diet.check_nutrient_value(player, nutrient, now)
 	end
 
 	if not now then
-		now = minetest.get_us_time()
+		now = os.time()
 	end
 
 	local meta = player:get_meta()
 	local eaten = get_eaten(meta, now)
 
 	local value = 0
-	for food, expires in pairs(eaten) do
+	for food, remaining in pairs(eaten) do
 		local food_def = balanced_diet.get_food_def(food)
-		local full_value = food_def.nutrient[nutrient] or 0
-		local duration = food_def.duration * 1e6
-		local remaining_value = full_value * gamma((expires - now) / duration)
+		local full_value = food_def.nutrients[nutrient] or 0
+		local remaining_value = full_value * gamma(remaining / food_def.duration)
 		value = value + remaining_value
 	end
 	return value
@@ -244,7 +286,7 @@ function balanced_diet.get_current_saturation(player, now)
 	end
 
 	if not now then
-		now = minetest.get_us_time()
+		now = os.time()
 	end
 
 	local player_name = player:get_player_name()
@@ -259,10 +301,16 @@ function balanced_diet.get_current_saturation(player, now)
 	local eaten = get_eaten(meta, now)
 	total_saturation = 0
 
-	for food, expires in pairs(eaten) do
+	for food, remaining in pairs(eaten) do
 		local food_def = balanced_diet.get_food_def(food)
-		local remaining_saturation = food_def.saturation * (expires - now) / (food_def.duration * 1e6)
+		local remaining_saturation = food_def.saturation * remaining / food_def.duration
 		total_saturation = total_saturation + remaining_saturation
+	end
+
+	local saturation_max = balanced_diet.get_saturation_max(player)
+	if total_saturation > saturation_max then
+		balanced_diet.log("error", "saturation %s is greater than max %s", total_saturation, saturation_max)
+		total_saturation = saturation_max
 	end
 
 	current_saturation_cache[key] = total_saturation
@@ -275,7 +323,7 @@ function balanced_diet.purge_eaten(player)
 		return
 	end
 	local meta = player:get_meta()
-	set_eaten(meta, {})
+	set_eaten(meta, {}, os.time())
 end
 
 balanced_diet.registered_appetite_checks = {}
@@ -299,13 +347,13 @@ function balanced_diet.check_appetite_for(player, itemstack, now)
 	end
 
 	if not now then
-		now = minetest.get_us_time()
+		now = os.time()
 	end
 
 	for i = 1, #balanced_diet.registered_appetite_checks do
 		local result, reason = balanced_diet.registered_appetite_checks[i](player, itemstack, now)
 		if result == false then
-			return false, (reason or S("appetite check failed"))
+			return false, (reason or S("appetite check failed w/out reason."))
 		end
 	end
 
@@ -316,17 +364,17 @@ function balanced_diet.check_appetite_for(player, itemstack, now)
 	local saturation_max = balanced_diet.get_saturation_max(player)
 	local saturation_after_eating = 0
 
-	for eaten_food, expires in pairs(get_eaten(meta, now)) do
+	local eaten = get_eaten(meta, now)
+	for eaten_food, remaining in pairs(eaten) do
 		if eaten_food == food_name then
-			local can_eat_after = expires - (s.top_up_at * food_def.duration * 1e6)
-			if now < can_eat_after then
-				return false, S("you've eaten @1 too recently", food_description)
+			if remaining > food_def.duration * s.top_up_at then
+				return false, S("you can't eat any more @1 right now.", food_description)
 			else
 				saturation_after_eating = saturation_after_eating + food_saturation
 			end
 		else
 			local other_food_def = balanced_diet.get_food_def(eaten_food)
-			local remaining_saturation = other_food_def.saturation * (expires - now) / (other_food_def.duration * 1e6)
+			local remaining_saturation = other_food_def.saturation * remaining / other_food_def.duration
 			saturation_after_eating = saturation_after_eating + remaining_saturation
 		end
 	end
@@ -335,7 +383,7 @@ function balanced_diet.check_appetite_for(player, itemstack, now)
 		return false, S("you are too full to eat @1 right now.", food_description)
 	end
 
-	return true
+	return true, nil, eaten
 end
 
 local function handle_replace_with(eater, itemstack, replace_with)
@@ -382,9 +430,9 @@ function balanced_diet.do_item_eat(itemstack, eater, pointed_thing)
 	end
 
 	local player_name = eater:get_player_name()
-	local now = minetest.get_us_time()
+	local now = os.time()
 
-	local has_appetite, reason = balanced_diet.check_appetite_for(eater, itemstack, now)
+	local has_appetite, reason, eaten = balanced_diet.check_appetite_for(eater, itemstack, now)
 
 	if not has_appetite then
 		if reason then
@@ -406,10 +454,9 @@ function balanced_diet.do_item_eat(itemstack, eater, pointed_thing)
 	end
 
 	local meta = eater:get_meta()
-	local eaten = get_eaten(meta, now)
-	local food_name = itemstack:get_name()
-	eaten[food_name] = now + (food_def.duration * 1e6)
-	set_eaten(meta, eaten)
+	local food_name = itemstack:peek_item():to_string()
+	eaten[food_name] = food_def.duration
+	set_eaten(meta, eaten, now)
 
 	-- see https://github.com/minetest/minetest/pull/13286/files
 	if food_def.replace_with then
