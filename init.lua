@@ -4,7 +4,7 @@ for _, mod in ipairs({ "hbhunger", "hunger_ng", "stamina" }) do
 	end
 end
 
-futil.check_version({ year = 2023, month = 3, day = 24 })
+futil.check_version({ year = 2023, month = 3, day = 26 })
 
 balanced_diet = fmod.create()
 

@@ -2,6 +2,7 @@ local f = string.format
 
 balanced_diet.nutrients_hud = futil.define_hud("balanced_diet:nutrients", {
 	period = 1,
+	enabled_by_default = true,
 	get_hud_def = function(player)
 		local now = os.time()
 		local nutrient_values = {}

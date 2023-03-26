@@ -2,6 +2,7 @@ local f = string.format
 
 balanced_diet.eaten_hud = futil.define_hud("balanced_diet:eaten", {
 	period = 1,
+	enabled_by_default = true,
 	get_hud_def = function(player)
 		local now = os.time()
 		local eaten = balanced_diet.get_eaten(player, now)
