@@ -13,13 +13,13 @@ local eaten_key = "balanced_diet:eaten"
 local last_set_key = "balanced_diet:last_set"
 
 local function get_eaten(meta, now)
-	local eaten = minetest.deserialize(meta:get_string(eaten_key))
-	if now and eaten then
+	local eaten = minetest.deserialize(meta:get_string(eaten_key)) or {}
+	if now then
 		local last_set = meta:get_int(last_set_key)
 		if last_set > 0 and now > last_set then
 			local elapsed = now - last_set
 			for food, remaining in pairs(eaten) do
-				if elapsed >= remaining or not balanced_diet.is_food(food) then
+				if elapsed >= remaining then
 					eaten[food] = nil
 				else
 					eaten[food] = remaining - elapsed
@@ -29,7 +29,12 @@ local function get_eaten(meta, now)
 		end
 		meta:set_int(last_set_key, now)
 	end
-	return eaten or {}
+	for food in pairs(eaten) do
+		if not balanced_diet.is_food(food) then
+			eaten[food] = nil
+		end
+	end
+	return eaten
 end
 
 function balanced_diet.get_eaten(player, now)
@@ -37,6 +42,11 @@ function balanced_diet.get_eaten(player, now)
 end
 
 local function set_eaten(meta, eaten, now)
+	for food in pairs(eaten) do
+		if not balanced_diet.is_food(food) then
+			error(f("attempting to set eaten w/ no-food item %q", food))
+		end
+	end
 	if futil.table.is_empty(eaten) then
 		meta:set_string(eaten_key, "")
 	else
