@@ -457,13 +457,14 @@ function balanced_diet.do_item_eat(itemstack, eater, pointed_thing)
 		end
 	end
 
+	local food_name = itemstack:peek_item():to_string()
+
 	if not minetest.is_creative_enabled(player_name) then
 		itemstack:take_item()
 		eater:set_wielded_item(itemstack)
 	end
 
 	local meta = eater:get_meta()
-	local food_name = itemstack:peek_item():to_string()
 	eaten[food_name] = food_def.duration
 	set_eaten(meta, eaten, now)
 
