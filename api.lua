@@ -299,6 +299,9 @@ function balanced_diet.get_current_saturation(player, now)
 
 	for food, remaining in pairs(eaten) do
 		local food_def = balanced_diet.get_food_def(food)
+		if not food_def then
+			error(f("no def for food %s?!", food))
+		end
 		local remaining_saturation = food_def.saturation * remaining / food_def.duration
 		total_saturation = total_saturation + remaining_saturation
 	end
