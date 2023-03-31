@@ -15,11 +15,8 @@ local last_set_key = "balanced_diet:last_set"
 local function get_eaten(meta, now)
 	local eaten = minetest.deserialize(meta:get_string(eaten_key))
 	if now and eaten then
-		local last_set = meta:get_float(last_set_key)
-		if last_set > 0 then
-			if now < last_set then
-				error("now(%s) is before the last update(%s)?!", now, last_set)
-			end
+		local last_set = meta:get_int(last_set_key)
+		if last_set > 0 and now > last_set then
 			local elapsed = now - last_set
 			for food, remaining in pairs(eaten) do
 				if elapsed >= remaining or not balanced_diet.is_food(food) then
@@ -28,10 +25,9 @@ local function get_eaten(meta, now)
 					eaten[food] = remaining - elapsed
 				end
 			end
-
 			meta:set_string(eaten_key, minetest.serialize(eaten), now)
-			meta:set_float(last_set_key, now)
 		end
+		meta:set_int(last_set_key, now)
 	end
 	return eaten or {}
 end
@@ -47,14 +43,14 @@ local function set_eaten(meta, eaten, now)
 		meta:set_string(eaten_key, minetest.serialize(eaten))
 	end
 	if now then
-		meta:set_float(last_set_key, now)
+		meta:set_int(last_set_key, now)
 	end
 end
 
 minetest.register_on_joinplayer(function(player)
 	local meta = player:get_meta()
 	-- start the timer again
-	meta:set_float(last_set_key, os.time())
+	meta:set_int(last_set_key, os.time())
 end)
 
 minetest.register_on_leaveplayer(function(player, timed_out)
