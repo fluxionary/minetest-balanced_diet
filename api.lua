@@ -42,9 +42,12 @@ function balanced_diet.get_eaten(player, now)
 end
 
 local function set_eaten(meta, eaten, now)
-	for food in pairs(eaten) do
+	for food, time_remaining in pairs(eaten) do
 		if not balanced_diet.is_food(food) then
-			error(f("attempting to set eaten w/ no-food item %q", food))
+			error(f("attempting to set eaten w/ non-food item %q", food))
+		end
+		if time_remaining <= 0 then
+			eaten[food] = nil
 		end
 	end
 	if futil.table.is_empty(eaten) then
@@ -333,6 +336,22 @@ function balanced_diet.purge_eaten(player)
 	end
 	local meta = player:get_meta()
 	set_eaten(meta, {}, os.time())
+end
+
+function balanced_diet.advance_eaten_time(player, amount)
+	if not minetest.is_player(player) then
+		return
+	end
+	local meta = player:get_meta()
+	local eaten = get_eaten(meta)
+	for food, remaining_time in pairs(eaten) do
+		if remaining_time > amount then
+			eaten[food] = remaining_time - amount
+		else
+			eaten[food] = nil
+		end
+	end
+	set_eaten(meta, eaten)
 end
 
 balanced_diet.registered_appetite_checks = {}

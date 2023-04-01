@@ -658,5 +658,6 @@ stds.balanced_diet = {
 		"fmod",
 		"futil",
 		"hb",
+		"staminoid",
 	},
 }
