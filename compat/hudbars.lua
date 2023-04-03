@@ -1,7 +1,7 @@
 local S = balanced_diet.S
 local s = balanced_diet.settings
 
-local identifier = "balanced_diet:saturation"
+local identifier = "saturation"
 
 hb.register_hudbar(
 	identifier,
