@@ -7,11 +7,17 @@ balanced_diet.diet_hud = futil.define_hud("balanced_diet:diet", {
 		local now = os.time()
 		local eaten = balanced_diet.get_eaten(player, now)
 		local lines = {}
+		local item_name_by_description = {}
 
-		for item, remaining in futil.table.pairs_by_key(eaten) do
+		for item, remaining in pairs(eaten) do
 			local description = futil.get_safe_short_description(item)
+			item_name_by_description[description] = item:match("^[^:]:(.*)$") or item
 			lines[#lines + 1] = f("%s: %.0f", description, remaining)
 		end
+
+		table.sort(lines, function(a, b)
+			return item_name_by_description[a] < item_name_by_description[b]
+		end)
 
 		if #lines > 0 then
 			table.insert(lines, "---------------")
