@@ -11,8 +11,9 @@ balanced_diet.diet_hud = futil.define_hud("balanced_diet:diet", {
 
 		for item, remaining in pairs(eaten) do
 			local description = futil.get_safe_short_description(item)
+			description = f("%s: %.0f", description, remaining)
+			lines[#lines + 1] = description
 			item_name_by_description[description] = item:match("^[^:]:(.*)$") or item
-			lines[#lines + 1] = f("%s: %.0f", description, remaining)
 		end
 
 		table.sort(lines, function(a, b)
