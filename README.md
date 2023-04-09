@@ -113,9 +113,8 @@ balanced_diet.register_food("bbq:bacon_cheeseburger", {
 ```
 
 
-# LICENSE
+### media sources
 
-code AGPL
+* balanced_diet_eat.[123].ogg - (C) sonictechtonic CC-BY-3.0 http://www.freesound.org/people/sonictechtonic/sounds/242215/
 
-Sounds:
-- balanced_diet_eat.*.ogg - http://www.freesound.org/people/sonictechtonic/sounds/242215/ CC-BY-3.0
+* balanced_diet_eat.[45].ogg - (C) rubberduck CC0 https://opengameart.org/content/80-cc0-creature-sfx
