@@ -460,14 +460,18 @@ function balanced_diet.do_item_eat(itemstack, eater, pointed_thing)
 	local player_name = eater:get_player_name()
 	local now = os.time()
 
+	local food_name = itemstack:peek_item():to_string()
 	local has_appetite, reason, eaten = balanced_diet.check_appetite_for(eater, itemstack, now)
 
 	if not has_appetite then
 		if reason then
+			balanced_diet.log("action", "%s tries to eat %s but cannot", player_name, food_name)
 			minetest.chat_send_player(player_name, reason)
 		end
 		return
 	end
+
+	balanced_diet.log("action", "%s eats %s", player_name, food_name)
 
 	for _, callback in ipairs(balanced_diet.registered_on_item_eats) do
 		local result = callback(eater, itemstack, pointed_thing)
@@ -475,8 +479,6 @@ function balanced_diet.do_item_eat(itemstack, eater, pointed_thing)
 			return result
 		end
 	end
-
-	local food_name = itemstack:peek_item():to_string()
 
 	if not minetest.is_creative_enabled(player_name) then
 		itemstack:take_item()
