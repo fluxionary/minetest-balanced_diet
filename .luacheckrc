@@ -659,6 +659,5 @@ stds.balanced_diet = {
 		"futil",
 		"hb",
 		"player_attributes",
-		"staminoid",
 	},
 }
