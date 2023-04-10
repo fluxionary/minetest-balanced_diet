@@ -8,8 +8,8 @@ futil.check_version({ year = 2023, month = 3, day = 26 })
 
 balanced_diet = fmod.create()
 
+balanced_diet.dofile("saturation_attribute")
 balanced_diet.dofile("api")
-balanced_diet.dofile("callbacks")
 balanced_diet.dofile("globalstep")
 balanced_diet.dofile("chatcommands")
 balanced_diet.dofile("saturation_hud")

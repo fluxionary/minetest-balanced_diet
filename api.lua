@@ -255,81 +255,6 @@ function balanced_diet.check_nutrient_value(player, nutrient, now)
 	return value
 end
 
-balanced_diet.registered_on_saturation_max_changes = {}
-
-function balanced_diet.register_on_saturation_max_change(callback)
-	table.insert(balanced_diet.registered_on_saturation_max_changes, callback)
-end
-
-function balanced_diet.get_saturation_max(player)
-	if not minetest.is_player(player) then
-		return
-	end
-	local meta = player:get_meta()
-	return meta:get_float("balanced_diet:saturation_max")
-end
-
-function balanced_diet.set_saturation_max(player, saturation_max)
-	if not minetest.is_player(player) then
-		return
-	end
-	local meta = player:get_meta()
-	local key = "balanced_diet:saturation_max"
-	local old_max = meta:get_float("balanced_diet:saturation_max")
-	meta:set_float(key, saturation_max)
-	if saturation_max ~= old_max then
-		for _, callback in ipairs(balanced_diet.registered_on_saturation_max_changes) do
-			callback(player, saturation_max, old_max)
-		end
-	end
-end
-
-local current_saturation_cache = {}
-minetest.register_globalstep(function()
-	current_saturation_cache = {}
-end)
-
-function balanced_diet.get_current_saturation(player, now)
-	if not minetest.is_player(player) then
-		return 0
-	end
-
-	if not now then
-		now = os.time()
-	end
-
-	local player_name = player:get_player_name()
-	local key = f("%s:%s", player_name, now)
-	local total_saturation = current_saturation_cache[key]
-
-	if total_saturation then
-		return total_saturation
-	end
-
-	local meta = player:get_meta()
-	local eaten = get_eaten(meta, now)
-	total_saturation = 0
-
-	for food, remaining in pairs(eaten) do
-		local food_def = balanced_diet.get_food_def(food)
-		if not food_def then
-			error(f("no def for food %q?! %s", food, dump(eaten)))
-		end
-		local remaining_saturation = food_def.saturation * remaining / food_def.duration
-		total_saturation = total_saturation + remaining_saturation
-	end
-
-	local saturation_max = balanced_diet.get_saturation_max(player)
-	if total_saturation > saturation_max then
-		balanced_diet.log("error", "saturation %s is greater than max %s", total_saturation, saturation_max)
-		total_saturation = saturation_max
-	end
-
-	current_saturation_cache[key] = total_saturation
-
-	return total_saturation
-end
-
 function balanced_diet.purge_eaten(player)
 	if not minetest.is_player(player) then
 		return
@@ -389,9 +314,10 @@ function balanced_diet.check_appetite_for(player, itemstack, now)
 	local food_name = itemstack:get_name()
 	local food_description = futil.get_safe_short_description(itemstack)
 	local food_saturation = food_def.saturation
-	local saturation_max = balanced_diet.get_saturation_max(player)
+	local saturation_max = balanced_diet.saturation_attribute:get_max(player)
 	local saturation_after_eating = 0
 
+	-- we have to compute this separately from the current saturation value because of top_up
 	local eaten = get_eaten(meta, now)
 	for eaten_food, remaining in pairs(eaten) do
 		if eaten_food == food_name then
