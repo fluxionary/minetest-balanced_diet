@@ -15,5 +15,6 @@ balanced_diet.dofile("chatcommands")
 balanced_diet.dofile("saturation_hud")
 balanced_diet.dofile("diet_hud")
 balanced_diet.dofile("overrides")
+balanced_diet.dofile("callbacks")
 
 balanced_diet.dofile("compat", "init")
