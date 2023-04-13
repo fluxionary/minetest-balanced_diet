@@ -145,6 +145,12 @@ local function build_description(item_name, food_def)
 	return table.concat(parts, "\n"), def.short_description or orig_description
 end
 
+balanced_diet.registered_on_register_foods = {}
+
+function balanced_diet.register_on_register_food(callback)
+	table.insert(balanced_diet.registered_on_register_foods, callback)
+end
+
 function balanced_diet.register_food(item_name, food_def)
 	local def = minetest.registered_items[item_name]
 	if not def then
@@ -177,6 +183,10 @@ function balanced_diet.register_food(item_name, food_def)
 		groups = groups,
 		on_use = balanced_diet.item_eat(),
 	})
+
+	for _, callback in ipairs(balanced_diet.registered_on_register_foods) do
+		callback(item_name, food_def)
+	end
 end
 
 function balanced_diet.override_food(item_name, overrides)
