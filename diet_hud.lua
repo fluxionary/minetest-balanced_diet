@@ -13,11 +13,11 @@ balanced_diet.diet_hud = futil.define_hud("balanced_diet:diet", {
 			local description = futil.get_safe_short_description(item)
 			description = f("%s: %.0f", description, remaining)
 			lines[#lines + 1] = description
-			item_name_by_description[description] = item:match("^[^:]:(.*)$") or item
+			item_name_by_description[description] = item:match("^[^:]*:(.*)$") or item
 		end
 
 		table.sort(lines, function(a, b)
-			return item_name_by_description[a] < item_name_by_description[b]
+			return item_name_by_description[a]:lower() < item_name_by_description[b]:lower()
 		end)
 
 		if #lines > 0 then
