@@ -330,15 +330,19 @@ function balanced_diet.check_appetite_for(player, itemstack, now)
 	-- we have to compute this separately from the current saturation value because of top_up
 	local eaten = get_eaten(meta, now)
 	for eaten_food, remaining in pairs(eaten) do
-		if eaten_food == food_name then
+		local eaten_food_def = balanced_diet.get_food_def(eaten_food)
+
+		if
+			eaten_food == food_name
+			or (food_def.category and eaten_food_def.category and food_def.category == eaten_food_def.category)
+		then
 			if remaining > food_def.duration * s.top_up_at then
 				return false, S("you can't eat any more @1 right now.", food_description)
 			else
 				saturation_after_eating = saturation_after_eating + food_saturation
 			end
 		else
-			local other_food_def = balanced_diet.get_food_def(eaten_food)
-			local remaining_saturation = other_food_def.saturation * remaining / other_food_def.duration
+			local remaining_saturation = eaten_food_def.saturation * remaining / eaten_food_def.duration
 			saturation_after_eating = saturation_after_eating + remaining_saturation
 		end
 	end
@@ -359,20 +363,20 @@ local function handle_replace_with(eater, itemstack, replace_with)
 			remainder = inv:add_item("main", replace_with)
 			if not remainder:is_empty() then
 				local pos = eater:get_pos()
-				minetest.add_item(pos, remainder)
+				if not minetest.add_item(pos, remainder) then
+					balanced_diet.log(
+						"warning",
+						"%s lost replacement item %s after eating %s",
+						eater:get_player_name(),
+						remainder:to_string(),
+						itemstack:to_string()
+					)
+				end
 			end
 		end
 	else
 		for _, replace_item in ipairs(replace_with) do
-			local remainder = itemstack:add_item(replace_item)
-			eater:set_wielded_item(itemstack)
-			if not remainder:is_empty() then
-				remainder = inv:add_item("main", replace_item)
-				if not remainder:is_empty() then
-					local pos = eater:get_pos()
-					minetest.add_item(pos, remainder)
-				end
-			end
+			handle_replace_with(eater, itemstack, replace_item)
 		end
 	end
 	return itemstack
@@ -421,8 +425,18 @@ function balanced_diet.do_item_eat(itemstack, eater, pointed_thing)
 		eater:set_wielded_item(itemstack)
 	end
 
-	local meta = eater:get_meta()
+	if food_def.category then
+		for eaten_food in pairs(eaten) do
+			local eaten_food_def = balanced_diet.get_food_def(eaten_food)
+			if eaten_food_def.category == food_def.category then
+				eaten[eaten_food] = nil
+			end
+		end
+	end
+
 	eaten[food_name] = food_def.duration
+
+	local meta = eater:get_meta()
 	set_eaten(meta, eaten, now)
 
 	-- see https://github.com/minetest/minetest/pull/13286/files
