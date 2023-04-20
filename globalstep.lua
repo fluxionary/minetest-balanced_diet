@@ -2,6 +2,8 @@ local f = string.format
 
 local check_every = 1 -- TODO: setting
 
+local last_eaten_by_player_name = {}
+
 local function update_saturation(player, now)
 	local eaten = balanced_diet.get_eaten(player, now)
 	local total_saturation = 0
@@ -42,6 +44,29 @@ local function apply_nutrients(player, now)
 	end
 end
 
+local function check_for_empty_stomach(player, now)
+	local player_name = player:get_player_name()
+	local last_eaten = last_eaten_by_player_name[player_name]
+	local eaten = balanced_diet.get_eaten(player, now)
+	last_eaten_by_player_name[player_name] = eaten
+	if last_eaten then
+		local food_digested = false
+		for food in pairs(last_eaten) do
+			if not eaten[food] then
+				food_digested = true
+				break
+			end
+		end
+		if food_digested then
+			minetest.sound_play(
+				"balanced_diet_hungry",
+				{ pos = player:get_pos(), max_hear_distance = 16, gain = 0.5 },
+				true
+			)
+		end
+	end
+end
+
 futil.register_globalstep({
 	period = check_every,
 	catchup = false,
@@ -50,6 +75,12 @@ futil.register_globalstep({
 		local players = minetest.get_connected_players()
 		for i = 1, #players do
 			apply_nutrients(players[i], now)
+			check_for_empty_stomach(players[i], now)
 		end
 	end,
 })
+
+minetest.register_on_leaveplayer(function(player)
+	local player_name = player:get_player_name()
+	last_eaten_by_player_name[player_name] = nil
+end)

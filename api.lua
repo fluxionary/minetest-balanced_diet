@@ -12,7 +12,19 @@ end
 local eaten_key = "balanced_diet:eaten"
 local last_set_key = "balanced_diet:last_set"
 
-local function get_eaten(meta, now)
+local eaten_cache_by_player_name = {}
+
+local function get_eaten(player, now)
+	local meta = player:get_meta()
+	local player_name = player:get_player_name()
+	local cached = eaten_cache_by_player_name[player_name]
+	if cached then
+		local timestamp, eaten = unpack(cached)
+		if not now or timestamp == now then
+			return eaten
+		end
+	end
+
 	local eaten = minetest.deserialize(meta:get_string(eaten_key)) or {}
 	if now then
 		local last_set = meta:get_int(last_set_key)
@@ -34,14 +46,16 @@ local function get_eaten(meta, now)
 			eaten[food] = nil
 		end
 	end
+	if now then
+		eaten_cache_by_player_name[player_name] = { now, eaten }
+	end
 	return eaten
 end
 
-function balanced_diet.get_eaten(player, now)
-	return get_eaten(player:get_meta(), now)
-end
+balanced_diet.get_eaten = get_eaten
 
-local function set_eaten(meta, eaten, now)
+local function set_eaten(player, eaten, now)
+	local meta = player:get_meta()
 	for food, time_remaining in pairs(eaten) do
 		if not balanced_diet.is_food(food) then
 			error(f("attempting to set eaten w/ non-food item %q", food))
@@ -57,6 +71,8 @@ local function set_eaten(meta, eaten, now)
 	end
 	if now then
 		meta:set_int(last_set_key, now)
+		local player_name = player:get_player_name()
+		eaten_cache_by_player_name[player_name] = { now, eaten }
 	end
 end
 
@@ -67,19 +83,18 @@ minetest.register_on_joinplayer(function(player)
 end)
 
 minetest.register_on_leaveplayer(function(player, timed_out)
-	local meta = player:get_meta()
 	if timed_out then
 		-- refund time during timeout (60 seconds)
 		-- note that this doesn't refund foods which might have expired during the timeout, which is tricky
-		local eaten = get_eaten(meta)
+		local eaten = get_eaten(player)
 		for food, remaining in pairs(eaten) do
 			eaten[food] = remaining + 60
 		end
-		set_eaten(meta, eaten) -- don't change last_set
+		set_eaten(player, eaten) -- don't change last_set
 	end
 
 	-- make sure food is used up
-	get_eaten(meta, os.time())
+	get_eaten(player, os.time())
 end)
 
 function balanced_diet.register_nutrient(name, def)
@@ -252,8 +267,7 @@ function balanced_diet.check_nutrient_value(player, nutrient, now)
 		now = os.time()
 	end
 
-	local meta = player:get_meta()
-	local eaten = get_eaten(meta, now)
+	local eaten = get_eaten(player, now)
 
 	local value = 0
 	for food, remaining in pairs(eaten) do
@@ -269,16 +283,14 @@ function balanced_diet.purge_eaten(player)
 	if not minetest.is_player(player) then
 		return
 	end
-	local meta = player:get_meta()
-	set_eaten(meta, {}, os.time())
+	set_eaten(player, {}, os.time())
 end
 
 function balanced_diet.advance_eaten_time(player, amount)
 	if not minetest.is_player(player) then
 		return
 	end
-	local meta = player:get_meta()
-	local eaten = get_eaten(meta)
+	local eaten = get_eaten(player)
 	for food, remaining_time in pairs(eaten) do
 		if remaining_time > amount then
 			eaten[food] = remaining_time - amount
@@ -286,7 +298,7 @@ function balanced_diet.advance_eaten_time(player, amount)
 			eaten[food] = nil
 		end
 	end
-	set_eaten(meta, eaten)
+	set_eaten(player, eaten)
 end
 
 balanced_diet.registered_appetite_checks = {}
@@ -320,7 +332,6 @@ function balanced_diet.check_appetite_for(player, itemstack, now)
 		end
 	end
 
-	local meta = player:get_meta()
 	local food_name = itemstack:get_name()
 	local food_description = futil.get_safe_short_description(itemstack)
 	local food_saturation = food_def.saturation
@@ -328,7 +339,7 @@ function balanced_diet.check_appetite_for(player, itemstack, now)
 	local saturation_after_eating = 0
 
 	-- we have to compute this separately from the current saturation value because of top_up
-	local eaten = get_eaten(meta, now)
+	local eaten = get_eaten(player, now)
 	for eaten_food, remaining in pairs(eaten) do
 		local eaten_food_def = balanced_diet.get_food_def(eaten_food)
 
@@ -436,8 +447,7 @@ function balanced_diet.do_item_eat(itemstack, eater, pointed_thing)
 
 	eaten[food_name] = food_def.duration
 
-	local meta = eater:get_meta()
-	set_eaten(meta, eaten, now)
+	set_eaten(eater, eaten, now)
 
 	-- see https://github.com/minetest/minetest/pull/13286/files
 	if food_def.replace_with then
