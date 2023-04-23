@@ -10,7 +10,9 @@ hb.register_hudbar(
 	{ bar = "[combine:2x16^[noalpha^[colorize:#FF0:255" },
 	0,
 	s.default_saturation_max,
-	false
+	false,
+	nil,
+	{ format_value = "%.1f", format_max_value = "%.1f" }
 )
 
 balanced_diet.register_saturation_hud({
