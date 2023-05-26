@@ -428,8 +428,6 @@ function balanced_diet.do_item_eat(itemstack, eater, pointed_thing)
 		return
 	end
 
-	balanced_diet.log("action", "%s eats %s", player_name, food_name)
-
 	for _, callback in ipairs(balanced_diet.registered_on_item_eats) do
 		local result = callback(eater, itemstack, pointed_thing)
 		if result then
@@ -437,9 +435,12 @@ function balanced_diet.do_item_eat(itemstack, eater, pointed_thing)
 		end
 	end
 
-	if not minetest.is_creative_enabled(player_name) then
-		itemstack:take_item()
-		eater:set_wielded_item(itemstack)
+	balanced_diet.log("action", "%s eats %s", player_name, food_name)
+
+	if def.sound and def.sound.eat then
+		minetest.sound_play(def.sound.eat, { pos = eater:get_pos(), max_hear_distance = 16 }, true)
+	else
+		minetest.sound_play("balanced_diet_eat", { pos = eater:get_pos(), max_hear_distance = 16 }, true)
 	end
 
 	if food_def.category then
@@ -455,15 +456,18 @@ function balanced_diet.do_item_eat(itemstack, eater, pointed_thing)
 
 	set_eaten(eater, eaten, now)
 
+	if not minetest.is_creative_enabled(player_name) then
+		itemstack:take_item()
+		eater:set_wielded_item(itemstack)
+	end
+
 	-- see https://github.com/minetest/minetest/pull/13286/files
 	if food_def.replace_with then
 		itemstack = handle_replace_with(eater, itemstack, food_def.replace_with)
 	end
 
-	if def.sound and def.sound.eat then
-		minetest.sound_play(def.sound.eat, { pos = eater:get_pos(), max_hear_distance = 16 }, true)
-	else
-		minetest.sound_play("balanced_diet_eat", { pos = eater:get_pos(), max_hear_distance = 16 }, true)
+	if food_def.after_eat then
+		food_def.after_eat(itemstack, eater, pointed_thing)
 	end
 
 	for _, callback in ipairs(balanced_diet.registered_after_item_eats) do
