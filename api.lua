@@ -178,15 +178,21 @@ function balanced_diet.register_food(item_name, food_def)
 	food_def = table.copy(food_def)
 	food_def.duration = food_def.duration or s.default_food_duration
 	food_def.saturation = food_def.saturation or s.default_food_saturation
+	food_def.nutrients = food_def.nutrients or {}
 
 	local groups = table.copy(def.groups or {})
 	groups.food = 1
-	for nutrient, value in pairs(food_def.nutrients or {}) do
+
+	for nutrient, value in pairs(food_def.nutrients) do
 		if not balanced_diet.registered_nutrients[nutrient] then
 			-- TODO: this should optionally just be a warning
 			error(f("unknown nutrient %q when defining food %q", nutrient, item_name))
 		end
-		groups["nutrient_" .. nutrient] = value
+		if value == 0 then
+			food_def.nutrients = nil
+		else
+			groups["nutrient_" .. nutrient] = value
+		end
 	end
 
 	local description, short_description = build_description(item_name, food_def)
