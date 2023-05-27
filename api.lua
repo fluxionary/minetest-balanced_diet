@@ -312,18 +312,22 @@ function balanced_diet.register_appetite_check(callback)
 	table.insert(balanced_diet.registered_appetite_checks, callback)
 end
 
-function balanced_diet.check_appetite_for(player, itemstack, now)
+-- returns either
+--   false, human_readable_reason
+-- or
+--   true, nil, get_eaten(player, now)
+function balanced_diet.check_appetite_for(player, new_food_itemstack, now)
 	if not minetest.is_player(player) then
 		return false, S("you are not a player")
 	end
 
-	local def = itemstack:get_definition()
-	if not def then
+	local new_food_name = new_food_itemstack:get_name()
+	if not minetest.registered_items[new_food_name] then
 		return false, S("this is not food")
 	end
 
-	local food_def = balanced_diet.get_food_def(itemstack)
-	if not food_def then
+	local new_food_def = balanced_diet.get_food_def(new_food_itemstack)
+	if not new_food_def then
 		return false, S("this is not food")
 	end
 
@@ -332,31 +336,40 @@ function balanced_diet.check_appetite_for(player, itemstack, now)
 	end
 
 	for i = 1, #balanced_diet.registered_appetite_checks do
-		local result, reason = balanced_diet.registered_appetite_checks[i](player, itemstack, now)
+		local result, reason = balanced_diet.registered_appetite_checks[i](player, new_food_itemstack, now)
 		if result == false then
 			return false, (reason or S("appetite check failed w/out reason."))
 		end
 	end
 
-	local food_name = itemstack:get_name()
-	local food_description = futil.get_safe_short_description(itemstack)
-	local food_saturation = food_def.saturation
+	local new_food_description = futil.get_safe_short_description(new_food_itemstack)
+	local new_food_category = new_food_def.category
+	local new_food_saturation = new_food_def.saturation
 	local saturation_max = balanced_diet.saturation_attribute:get_max(player)
-	local saturation_after_eating = 0
 
-	-- we have to compute this separately from the current saturation value because of top_up
+	if new_food_saturation > saturation_max then
+		return false, S("@1 is too large for you to eat!", new_food_description)
+	end
+
 	local eaten = get_eaten(player, now)
+	-- we have to compute this separately from the current saturation value because of top_up
+	local saturation_after_eating = 0
+	local topped_up = false
+	local already_eaten = false
 	for eaten_food, remaining in pairs(eaten) do
+		already_eaten = true
 		local eaten_food_def = balanced_diet.get_food_def(eaten_food)
+		local eaten_food_category = eaten_food_def.category
 
 		if
-			eaten_food == food_name
-			or (food_def.category and eaten_food_def.category and food_def.category == eaten_food_def.category)
+			eaten_food == new_food_name
+			or (new_food_category and eaten_food_category and new_food_category == eaten_food_category)
 		then
-			if remaining > food_def.duration * s.top_up_at then
-				return false, S("you can't eat any more @1 right now.", food_description)
+			if remaining > new_food_def.duration * s.top_up_at then
+				return false, S("you can't eat any more @1 right now.", new_food_category or new_food_description)
 			else
-				saturation_after_eating = saturation_after_eating + food_saturation
+				topped_up = true
+				saturation_after_eating = saturation_after_eating + new_food_saturation
 			end
 		else
 			local remaining_saturation = eaten_food_def.saturation * remaining / eaten_food_def.duration
@@ -364,8 +377,16 @@ function balanced_diet.check_appetite_for(player, itemstack, now)
 		end
 	end
 
+	if not topped_up then
+		saturation_after_eating = saturation_after_eating + new_food_saturation
+	end
+
 	if saturation_after_eating > saturation_max then
-		return false, S("you are too full to eat @1 right now.", food_description)
+		if already_eaten then
+			return false, S("you are too full to eat @1 right now.", new_food_description)
+		else
+			return false, S("@1 is too large for you to eat!", new_food_description)
+		end
 	end
 
 	return true, nil, eaten
