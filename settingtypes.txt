@@ -1,5 +1,5 @@
 # this could also be called "fullness". this controls how much total food a player can eat.
-balanced_diet:default_saturation_max (default maximum saturation) float 10 0
+balanced_diet:default_saturation_max (default maximum saturation) float 12 0
 
 # if a food's saturation is unspecified, it applies this much
 balanced_diet:default_food_saturation (default food saturation) float 1 0
