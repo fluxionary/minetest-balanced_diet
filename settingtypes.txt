@@ -13,3 +13,7 @@ balanced_diet:nutrient_decay_gamma (nutrient decay gamma) float 0.5 0.01
 
 # when a food's duration is top-up% elapsed, the player is allowed to eat the food again
 balanced_diet:top_up_at (top up percentage) float 0.5 0 1
+
+# instead of conferring nutrients immediately upon eating food, 1/n of its duration is spent gradually gaining them.
+# values < 1 disable the behavior.
+balanced_diet:ramp_up (ramp up scale) float 100 1
