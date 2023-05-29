@@ -279,7 +279,12 @@ function balanced_diet.check_nutrient_value(player, nutrient, now)
 	for food, remaining in pairs(eaten) do
 		local food_def = balanced_diet.get_food_def(food)
 		local full_value = food_def.nutrients[nutrient] or 0
-		local remaining_value = full_value * gamma(remaining / food_def.duration)
+		local remaining_value
+		if remaining >= food_def.duration * 0.99 then
+			remaining_value = full_value * (food_def.duration - remaining) * 100 / food_def.duration
+		else
+			remaining_value = full_value * gamma(remaining / food_def.duration)
+		end
 		value = value + remaining_value
 	end
 	return value
