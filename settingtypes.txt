@@ -9,7 +9,7 @@ balanced_diet:default_food_duration (default food duration) float 300 0
 
 # a value of 1 means that the nutrient value decays linearly until it is fully digested.
 # values less than 1 mean that nutrient values decays more slowly at first, providing more total value.
-balanced_diet:nutrient_decay_gamma (nutrient decay gamma) float 0.5 0.01
+balanced_diet:nutrient_decay_gamma (nutrient decay gamma) float 0.3 0.01
 
 # when a food's duration is top-up% elapsed, the player is allowed to eat the food again
 balanced_diet:top_up_at (top up percentage) float 0.5 0 1
