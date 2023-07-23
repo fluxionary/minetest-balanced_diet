@@ -2,7 +2,7 @@
     "type": "MOD",
     "name": "balanced_diet",
     "title": "balanced diet",
-    "license": "AGPL-3.0-or-later",
+    "license": "LGPL-3.0-or-later",
     "media_license": "CC-BY-SA-4.0",
     "repo": "https://github.com/fluxionary/minetest-balanced_diet.git",
     "website": "https://github.com/fluxionary/minetest-balanced_diet",
