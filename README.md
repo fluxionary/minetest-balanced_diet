@@ -1,9 +1,9 @@
 # balanced_diet
 
-api for specifying multiple dimensions to eating
+api for specifying multiple dimensions to eating.
 
-see balanced_nutrients which provides one possible usage, and balanced_nutrient_overrides, which applies
-those nutrients to common food items from various mods.
+see the external balanced_nutrients mod, which provides one possible definition of nutrients,
+and balanced_nutrient_overrides, which applies those nutrients to common food items from various mods.
 
 ### media sources
 
