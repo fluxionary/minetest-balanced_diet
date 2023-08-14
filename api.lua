@@ -483,22 +483,24 @@ function balanced_diet.do_item_eat(itemstack, eater, pointed_thing)
 
 	set_eaten(eater, eaten, now)
 
-	if not minetest.is_creative_enabled(player_name) then
-		itemstack:take_item()
-		eater:set_wielded_item(itemstack)
-	end
-
-	-- see https://github.com/minetest/minetest/pull/13286/files
-	if food_def.replace_with then
-		itemstack = handle_replace_with(eater, itemstack, food_def.replace_with)
-	end
+	local prevent_consume = minetest.is_creative_enabled(player_name)
 
 	if food_def.after_eat then
-		food_def.after_eat(itemstack, eater, pointed_thing)
+		prevent_consume = prevent_consume or food_def.after_eat(itemstack, eater, pointed_thing)
 	end
 
 	for _, callback in ipairs(balanced_diet.registered_after_item_eats) do
-		callback(eater, itemstack, pointed_thing)
+		prevent_consume = prevent_consume or callback(eater, itemstack, pointed_thing)
+	end
+
+	if not prevent_consume then
+		itemstack:take_item()
+		eater:set_wielded_item(itemstack)
+
+		-- see https://github.com/minetest/minetest/pull/13286/files
+		if food_def.replace_with then
+			itemstack = handle_replace_with(eater, itemstack, food_def.replace_with)
+		end
 	end
 
 	return itemstack
