@@ -261,7 +261,7 @@ function balanced_diet.register_after_item_eat(callback)
 end
 
 function balanced_diet.check_nutrient_value(player, nutrient, now)
-	if not minetest.is_player(player) then
+	if not futil.is_player(player) then
 		return
 	end
 	local nutrient_def = balanced_diet.registered_nutrients[nutrient]
@@ -292,14 +292,14 @@ function balanced_diet.check_nutrient_value(player, nutrient, now)
 end
 
 function balanced_diet.purge_eaten(player)
-	if not minetest.is_player(player) then
+	if not futil.is_player(player) then
 		return
 	end
 	set_eaten(player, {}, os.time())
 end
 
 function balanced_diet.advance_eaten_time(player, amount)
-	if not minetest.is_player(player) then
+	if not futil.is_player(player) then
 		return
 	end
 	local eaten = get_eaten(player)
@@ -323,7 +323,7 @@ end
 -- or
 --   true, nil, get_eaten(player, now)
 function balanced_diet.check_appetite_for(player, new_food_itemstack, now)
-	if not minetest.is_player(player) then
+	if not futil.is_player(player) then
 		return false, S("you are not a player")
 	end
 
@@ -427,7 +427,7 @@ local function handle_replace_with(eater, itemstack, replace_with)
 end
 
 function balanced_diet.do_item_eat(itemstack, eater, pointed_thing)
-	if not minetest.is_player(eater) then
+	if not futil.is_player(eater) then
 		return
 	end
 
