@@ -1,19 +1,19 @@
 # this could also be called "fullness". this controls how much total food a player can eat.
-balanced_diet:default_saturation_max (default maximum saturation) float 12 0
+balanced_diet.default_saturation_max (default maximum saturation) float 12 0
 
 # if a food's saturation is unspecified, it applies this much
-balanced_diet:default_food_saturation (default food saturation) float 1 0
+balanced_diet.default_food_saturation (default food saturation) float 1 0
 
 # in seconds, the default is 5 minutes.
-balanced_diet:default_food_duration (default food duration) float 300 0
+balanced_diet.default_food_duration (default food duration) float 300 0
 
 # a value of 1 means that the nutrient value decays linearly until it is fully digested.
 # values less than 1 mean that nutrient values decays more slowly at first, providing more total value.
-balanced_diet:nutrient_decay_gamma (nutrient decay gamma) float 0.3 0.01
+balanced_diet.nutrient_decay_gamma (nutrient decay gamma) float 0.3 0.01
 
 # when a food's duration is top-up% elapsed, the player is allowed to eat the food again
-balanced_diet:top_up_at (top up percentage) float 0.5 0 1
+balanced_diet.top_up_at (top up percentage) float 0.5 0 1
 
 # instead of conferring nutrients immediately upon eating food, 1/n of its duration is spent gradually gaining them.
 # values < 1 disable the behavior.
-balanced_diet:ramp_up (ramp up scale) float 100 1
+balanced_diet.ramp_up (ramp up scale) float 100 1
